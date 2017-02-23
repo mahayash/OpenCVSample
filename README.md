@@ -3,7 +3,7 @@ How to add OpenCV library to Android Studio
 Prerequisite
 Install NDK and assign location of install NDK to Android Studio
 
-Sample#1 - Steps to add OpenCV library to Android Studio
+Sample#12 - Steps to add OpenCV library to Android Studio
 
 1.	Add C++ support to Android Studio
 a.	Create new project and check the "Include C++ Support"
