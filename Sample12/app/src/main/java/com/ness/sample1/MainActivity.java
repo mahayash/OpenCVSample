@@ -4,37 +4,40 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.TextView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.CameraBridgeViewBase;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.imgproc.Imgproc;
 
 public class MainActivity extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
 
+    private Mat mRgba, mRgbaF, mRgbaT;
+
     private static final String TAG = MainActivity.class.getSimpleName();
     private CameraBridgeViewBase cameraBridgeViewBase;
-    // Used to load the 'native-lib' library on application startup.
-    /*static {
-        System.loadLibrary("native-lib");
-
-            }*/
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        // Example of a call to a native method
-        /*TextView tv = (TextView) findViewById(R.id.sample_text);
-        tv.setText(stringFromJNI());*/
+        /*  requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+       */
+
+        setContentView(R.layout.activity_main);
 
         cameraBridgeViewBase = (CameraBridgeViewBase) findViewById(R.id.main_surface);
         cameraBridgeViewBase.setVisibility(View.VISIBLE);
         cameraBridgeViewBase.setCvCameraViewListener(this);
+
 
     }
 
@@ -69,6 +72,9 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     @Override
     public void onCameraViewStarted(int width, int height) {
 
+        mRgba = new Mat(height, width, CvType.CV_8UC4);
+        mRgbaF = new Mat(height, width, CvType.CV_8UC4);
+        mRgbaT = new Mat(width, width, CvType.CV_8UC4);
     }
 
     @Override
@@ -85,10 +91,17 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
     @Override
     public Mat onCameraFrame(CameraBridgeViewBase.CvCameraViewFrame inputFrame) {
 
-        Mat matGray = inputFrame.gray();
-        Gray(matGray.getNativeObjAddr(), 2000);
-        return matGray;
+        mRgba = inputFrame.rgba();
+        Mat mGray = inputFrame.gray();
+        CircleDetect(mGray.getNativeObjAddr(), mRgba.getNativeObjAddr());
+        return mRgba;
+
+
     }
+
+    public native void CannyEdgeDetection(long matAddrGr, long matAddrRgba);
+
+    public native void CircleDetect(long matAddrGr, long matAddrRgba);
 
     public native void Gray(long matAddrGray, int nbrElem);
 
