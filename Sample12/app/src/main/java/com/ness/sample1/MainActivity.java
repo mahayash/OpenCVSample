@@ -23,14 +23,13 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
     private static final String TAG = MainActivity.class.getSimpleName();
     private CameraBridgeViewBase cameraBridgeViewBase;
+    int position;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        /*  requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-       */
+        position = getIntent().getIntExtra(Constants.POSITION, 0);
 
         setContentView(R.layout.activity_main);
 
@@ -93,7 +92,18 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
 
         mRgba = inputFrame.rgba();
         Mat mGray = inputFrame.gray();
-        CircleDetect(mGray.getNativeObjAddr(), mRgba.getNativeObjAddr());
+        switch (position) {
+            case 0:
+                Gray(mGray.getNativeObjAddr(), 2000);
+                return mGray;
+            case 1:
+                CircleDetect(mGray.getNativeObjAddr(), mRgba.getNativeObjAddr());
+                break;
+            case 2:
+                CannyEdgeDetection(mGray.getNativeObjAddr(), mRgba.getNativeObjAddr());
+                break;
+        }
+
         return mRgba;
 
 
