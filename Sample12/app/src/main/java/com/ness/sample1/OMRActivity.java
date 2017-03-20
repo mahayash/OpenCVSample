@@ -15,12 +15,10 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Mat;
+import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 import java.io.InputStream;
-
-import static org.opencv.imgcodecs.Imgcodecs.CV_LOAD_IMAGE_COLOR;
-import static org.opencv.imgcodecs.Imgcodecs.imread;
 
 
 public class OMRActivity extends AppCompatActivity {
@@ -73,40 +71,43 @@ public class OMRActivity extends AppCompatActivity {
         try {
 
             //Load native opencv library
-            Uri path = Uri.parse("file:///android_asset/blank_circle_sheet.png");
-            String newPath = path.toString();
-
             AssetManager assetManager = getAssets();
+            //InputStream inputFileStream = assetManager.open("digital_image_processing.jpg");
             InputStream inputFileStream = assetManager.open("blank_circle_sheet.jpg");
             Bitmap bitmap = BitmapFactory.decodeStream(inputFileStream);
 
+            //bitmap to MAT
             Mat imgMat = new Mat();
             Utils.bitmapToMat(bitmap, imgMat);
 
-            CannyEdgeDetection(imgMat.getNativeObjAddr(), imgMat.getNativeObjAddr());
+            //Gray Color
+            Imgproc.cvtColor(imgMat, imgMat, Imgproc.COLOR_BGR2GRAY);
 
-            Bitmap cannyBitmap = Bitmap.createBitmap(imgMat.cols(), imgMat.rows(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(imgMat, cannyBitmap);
+            //Blur
+            Imgproc.GaussianBlur(imgMat, imgMat, new Size(5, 5), 0);
 
-            imgDisplay.setImageBitmap(cannyBitmap);
-          /*  Mat imgMat = imread(newPath, CV_LOAD_IMAGE_COLOR);
-            Log.d(TAG, "loadImage: " + imgMat.size());
+            //Canny
+            Imgproc.Canny(imgMat, imgMat, 75, 200);
 
-            CannyEdgeDetection(imgMat.getNativeObjAddr(), imgMat.getNativeObjAddr());
-            Bitmap bitmap = Bitmap.createBitmap(imgMat.cols(), imgMat.rows(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(imgMat, bitmap);*/
+            //Threshold
 
-            //imgDisplay.setImageBitmap(img);
-            //If the image is successfully read.
-            /*if (img.size() == 0) {
-            System.exit(1);
-            }*/
+            showImage(imgMat);
+
 
         } catch (Exception ex) {
             Log.d(TAG, "loadImage: " + ex);
         }
     }
 
+    private void showImage(Mat matFinal) {
 
-    public native void CannyEdgeDetection(long matAddrGr, long matAddrRgba);
+        Bitmap bitmapFinal = Bitmap.createBitmap(matFinal.cols(), matFinal.rows(), Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(matFinal, bitmapFinal);
+
+        imgDisplay.setImageBitmap(bitmapFinal);
+
+    }
+
+
+    //  public native void CannyEdgeDetection(long matAddrGr, long matAddrRgba);
 }

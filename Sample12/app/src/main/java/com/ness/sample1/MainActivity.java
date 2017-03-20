@@ -105,9 +105,7 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 break;
             case 3:
 
-                Intent omrIntent = new Intent(this, OMRActivity.class);
-                startActivity(omrIntent);
-                finish();
+
                 break;
         }
 

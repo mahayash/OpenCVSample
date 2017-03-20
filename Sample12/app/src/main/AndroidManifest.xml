@@ -29,7 +29,7 @@
             android:theme="@style/AppThemeNoActionBar" />
         <activity
             android:name=".OMRActivity"
-            android:screenOrientation="landscape"
+            android:screenOrientation="portrait"
             android:theme="@style/AppThemeNoActionBar" />
     </application>
 
