@@ -35,8 +35,6 @@ public class OMRActivity extends AppCompatActivity {
 
     private void InitView() {
         imgDisplay = (ImageView) findViewById(R.id.img_omr_sheet);
-        loadImage();
-
     }
 
     @Override
@@ -59,6 +57,7 @@ public class OMRActivity extends AppCompatActivity {
                 case LoaderCallbackInterface.SUCCESS:
 
                     System.loadLibrary("native-lib");
+                    loadImage();
                     break;
                 default:
                     super.onManagerConnected(status);
@@ -73,7 +72,7 @@ public class OMRActivity extends AppCompatActivity {
             //Load native opencv library
             AssetManager assetManager = getAssets();
             //InputStream inputFileStream = assetManager.open("digital_image_processing.jpg");
-            InputStream inputFileStream = assetManager.open("blank_circle_sheet.jpg");
+            InputStream inputFileStream = assetManager.open("filled_circle.png");
             Bitmap bitmap = BitmapFactory.decodeStream(inputFileStream);
 
             //bitmap to MAT
@@ -90,6 +89,7 @@ public class OMRActivity extends AppCompatActivity {
             Imgproc.Canny(imgMat, imgMat, 75, 200);
 
             //Threshold
+            //Imgproc.threshold(imgMat, imgMat, 0, 255, Imgproc.THRESH_OTSU);
 
             showImage(imgMat);
 
