@@ -34,7 +34,7 @@ public class OpenCVSampleList extends AppCompatActivity implements AdapterView.O
 
     private String[] getIndex() {
 
-        return new String[]{"Gray Image", "Detect Circle", "Detect Canny"};
+        return new String[]{"Gray Image", "Detect Circle", "Detect Canny","Detect OMR"};
     }
 
     @Override

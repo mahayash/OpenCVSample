@@ -28,7 +28,7 @@ void JNICALL Java_com_ness_sample1_MainActivity_Gray(JNIEnv *env, jobject instan
     }
 }
 
-JNIEXPORT void JNICALL Java_com_ness_sample1_MainActivity_CannyEdgeDetection(JNIEnv *, jobject,
+JNIEXPORT void JNICALL Java_com_ness_sample1_OMRActivity_CannyEdgeDetection(JNIEnv *, jobject,
                                                                              jlong addrGray,
                                                                              jlong addrRgba) {
 

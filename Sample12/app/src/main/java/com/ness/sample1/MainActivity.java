@@ -1,5 +1,6 @@
 package com.ness.sample1;
 
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -101,6 +102,12 @@ public class MainActivity extends AppCompatActivity implements CameraBridgeViewB
                 break;
             case 2:
                 CannyEdgeDetection(mGray.getNativeObjAddr(), mRgba.getNativeObjAddr());
+                break;
+            case 3:
+
+                Intent omrIntent = new Intent(this, OMRActivity.class);
+                startActivity(omrIntent);
+                finish();
                 break;
         }
 
