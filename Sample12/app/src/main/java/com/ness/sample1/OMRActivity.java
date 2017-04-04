@@ -14,6 +14,7 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
@@ -32,6 +33,7 @@ import java.util.List;
 
 import static org.opencv.imgproc.Imgproc.RETR_EXTERNAL;
 import static org.opencv.imgproc.Imgproc.contourArea;
+import static org.opencv.imgproc.Imgproc.floodFill;
 import static org.opencv.imgproc.Imgproc.getPerspectiveTransform;
 
 
@@ -85,8 +87,7 @@ public class OMRActivity extends AppCompatActivity {
 
             //Load native opencv library
             AssetManager assetManager = getAssets();
-            //InputStream inputFileStream = assetManager.open("digital_image_processing.jpg");
-            InputStream inputFileStream = assetManager.open("filled_circle.png");
+            InputStream inputFileStream = assetManager.open("scan_bubble.jpg");
             Bitmap bitmap = BitmapFactory.decodeStream(inputFileStream);
 
             //bitmap to MAT
@@ -102,13 +103,71 @@ public class OMRActivity extends AppCompatActivity {
             //Canny
             Imgproc.Canny(imgMat, imgMat, 75, 200);
 
+            //Threshold
+            Mat threshMat = new Mat();
+            Imgproc.threshold(imgMat, threshMat, 0, 255, Imgproc.THRESH_OTSU);
+
+            //find the contour
+            Mat threshMatCopy = new Mat();
             List<MatOfPoint> docMapContour = new ArrayList<>();
+            List<MatOfPoint> questContour = new ArrayList<>();
 
-            // Identify contour of paper
             Imgproc.findContours(imgMat, docMapContour, imgMat, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
-
-            // Find max area
             if (docMapContour.size() > 0) {
+                for (MatOfPoint matOfPoint : docMapContour) {
+                    Rect rect = Imgproc.boundingRect(matOfPoint);
+                    double aspectRatio = (double) rect.width / rect.height;
+                    if (rect.width > 20 && rect.height > 20 && aspectRatio >= 0.9 && aspectRatio <= 1.1) {
+                        questContour.add(matOfPoint);
+                    }
+                }
+            }
+            Log.d(TAG, "Total: " + questContour.size());
+            List<Mat> maskChannel = new ArrayList<>();
+            List<Mat> resultMask = new ArrayList<>();
+
+            for (int i = 0; i < questContour.size(); i++) {
+
+                /*Mat mask2 = new Mat();
+                Core.extractChannel(questContour.get(i), mask2, 0);
+                if (Core.countNonZero(mask2) > 0) {
+                    resultMask.add(mask2);
+                }
+                */
+
+            }
+
+            showImage(threshMat);
+
+
+        } catch (Exception ex) {
+            Log.d(TAG, "loadImage: " + ex);
+        }
+    }
+
+    private void showImage(Mat matFinal) {
+
+        Bitmap bitmapFinal = Bitmap.createBitmap(matFinal.cols(), matFinal.rows(), Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(matFinal, bitmapFinal);
+
+        imgDisplay.setImageBitmap(bitmapFinal);
+
+    }
+    //  public native void CannyEdgeDetection(long matAddrGr, long matAddrRgba);
+
+
+}
+
+
+//region
+
+//List<MatOfPoint> docMapContour = new ArrayList<>();
+
+// Identify contour of paper
+//Imgproc.findContours(imgMat, docMapContour, imgMat, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+
+// Find max area
+            /*if (docMapContour.size() > 0) {
 
                 Collections.sort(docMapContour, new Comparator<MatOfPoint>() {
                     @Override
@@ -133,13 +192,13 @@ public class OMRActivity extends AppCompatActivity {
                 if (mapPointApprox.size().height == 4) {
                     paperContour = mapPointApprox;
                 }
-            }
+            }*/
 
-            //getPerspectiveTransform(imgMat, paperContour.reshape(4, 2));
+//getPerspectiveTransform(imgMat, paperContour.reshape(4, 2));
 
 
-            //Threshold of Wrapped Image
-            Imgproc.threshold(paperContour, imgMat, 0, 255, Imgproc.THRESH_OTSU);
+//Threshold of Wrapped Image
+
 
            /* Mat counterMat = new Mat();
             List<MatOfPoint> counterList = new ArrayList<>();
@@ -153,27 +212,4 @@ public class OMRActivity extends AppCompatActivity {
                 questionList.add(mapPoint);
                 //}
             }*/
-
-
-            showImage(imgMat);
-
-
-        } catch (Exception ex) {
-            Log.d(TAG, "loadImage: " + ex);
-        }
-    }
-
-    private void showImage(Mat matFinal) {
-
-        Bitmap bitmapFinal = Bitmap.createBitmap(matFinal.cols(), matFinal.rows(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(matFinal, bitmapFinal);
-
-        imgDisplay.setImageBitmap(bitmapFinal);
-
-    }
-    //  public native void CannyEdgeDetection(long matAddrGr, long matAddrRgba);
-
-    private void four_point_tranformation() {
-
-    }
-}
+//endregion
