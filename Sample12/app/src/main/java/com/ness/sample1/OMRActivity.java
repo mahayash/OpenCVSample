@@ -20,6 +20,7 @@ import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
 import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
@@ -31,6 +32,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.opencv.core.CvType.CV_8UC1;
 import static org.opencv.imgproc.Imgproc.RETR_EXTERNAL;
 import static org.opencv.imgproc.Imgproc.contourArea;
 import static org.opencv.imgproc.Imgproc.floodFill;
@@ -105,14 +107,15 @@ public class OMRActivity extends AppCompatActivity {
 
             //Threshold
             Mat threshMat = new Mat();
-            Imgproc.threshold(imgMat, threshMat, 0, 255, Imgproc.THRESH_OTSU);
+            Imgproc.threshold(imgMat, threshMat, 0, 255, Imgproc.THRESH_OTSU | Imgproc.THRESH_BINARY_INV);
 
             //find the contour
-            Mat threshMatCopy = new Mat();
+
             List<MatOfPoint> docMapContour = new ArrayList<>();
             List<MatOfPoint> questContour = new ArrayList<>();
 
-            Imgproc.findContours(imgMat, docMapContour, imgMat, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+            Imgproc.findContours(threshMat, docMapContour, imgMat,
+                    Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
             if (docMapContour.size() > 0) {
                 for (MatOfPoint matOfPoint : docMapContour) {
                     Rect rect = Imgproc.boundingRect(matOfPoint);
@@ -122,20 +125,31 @@ public class OMRActivity extends AppCompatActivity {
                     }
                 }
             }
-            Log.d(TAG, "Total: " + questContour.size());
-            List<Mat> maskChannel = new ArrayList<>();
-            List<Mat> resultMask = new ArrayList<>();
-
+            Log.d(TAG, "Total: " + questContour.size()); // Find total # of circles
+/*
             for (int i = 0; i < questContour.size(); i++) {
 
-                /*Mat mask2 = new Mat();
-                Core.extractChannel(questContour.get(i), mask2, 0);
-                if (Core.countNonZero(mask2) > 0) {
-                    resultMask.add(mask2);
-                }
-                */
+                Imgproc.drawContours(threshMat, questContour, -1, Scalar.all(255), -1);
+                Mat maskImage = new Mat(threshMat.size(), CV_8UC1, Scalar.all(0));
+                Core.bitwise_and(threshMat, threshMat, maskImage);
 
-            }
+                //threshMat.copyTo(threshMat, maskImage);
+                int total = Core.countNonZero(maskImage);
+                if (total > 0) {
+                    Log.d(TAG, "loadImage: filled " + i);
+                }
+
+                *//*Core.bitwise_and(threshMat, threshMat, mask2);
+                int total = Core.countNonZero(mask2);
+                if (total > 0) {
+                    Log.d(TAG, "loadImage: filled " + i);
+                }*//*
+
+            }*/
+
+        /*
+
+            maskImage.setTo(Scalar.all(155));*/
 
             showImage(threshMat);
 
