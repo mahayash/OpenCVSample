@@ -3,22 +3,21 @@ package com.ness.sample1;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
-import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
@@ -26,23 +25,20 @@ import org.opencv.imgproc.Imgproc;
 
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Vector;
 
 import static org.opencv.core.CvType.CV_8UC1;
-import static org.opencv.imgproc.Imgproc.RETR_EXTERNAL;
-import static org.opencv.imgproc.Imgproc.contourArea;
-import static org.opencv.imgproc.Imgproc.floodFill;
-import static org.opencv.imgproc.Imgproc.getPerspectiveTransform;
+import static org.opencv.core.CvType.CV_8UC3;
+import static org.opencv.imgproc.Imgproc.CHAIN_APPROX_SIMPLE;
+import static org.opencv.imgproc.Imgproc.RETR_TREE;
 
 
 public class OMRActivity extends AppCompatActivity {
 
     private ImageView imgDisplay;
     public static final String TAG = "OMR";
+    private TextView txtQuestions;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -53,6 +49,7 @@ public class OMRActivity extends AppCompatActivity {
 
     private void InitView() {
         imgDisplay = (ImageView) findViewById(R.id.img_omr_sheet);
+        txtQuestions = (TextView) findViewById(R.id.txt_total_questions);
     }
 
     @Override
@@ -89,7 +86,7 @@ public class OMRActivity extends AppCompatActivity {
 
             //Load native opencv library
             AssetManager assetManager = getAssets();
-            InputStream inputFileStream = assetManager.open("scan_bubble.jpg");
+            InputStream inputFileStream = assetManager.open("scan_bubble_4.jpg");
             Bitmap bitmap = BitmapFactory.decodeStream(inputFileStream);
 
             //bitmap to MAT
@@ -102,54 +99,15 @@ public class OMRActivity extends AppCompatActivity {
             //Blur
             Imgproc.GaussianBlur(imgMat, imgMat, new Size(5, 5), 0);
 
-            //Canny
-            Imgproc.Canny(imgMat, imgMat, 75, 200);
-
             //Threshold
             Mat threshMat = new Mat();
-            Imgproc.threshold(imgMat, threshMat, 0, 255, Imgproc.THRESH_OTSU | Imgproc.THRESH_BINARY_INV);
+            Imgproc.threshold(imgMat, threshMat, 0, 255, Imgproc.THRESH_BINARY_INV | Imgproc.THRESH_OTSU);
 
-            //find the contour
+            //Canny
+            Imgproc.Canny(threshMat, imgMat, 75, 200);
 
-            List<MatOfPoint> docMapContour = new ArrayList<>();
-            List<MatOfPoint> questContour = new ArrayList<>();
-
-            Imgproc.findContours(threshMat, docMapContour, imgMat,
-                    Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
-            if (docMapContour.size() > 0) {
-                for (MatOfPoint matOfPoint : docMapContour) {
-                    Rect rect = Imgproc.boundingRect(matOfPoint);
-                    double aspectRatio = (double) rect.width / rect.height;
-                    if (rect.width > 20 && rect.height > 20 && aspectRatio >= 0.9 && aspectRatio <= 1.1) {
-                        questContour.add(matOfPoint);
-                    }
-                }
-            }
-            Log.d(TAG, "Total: " + questContour.size()); // Find total # of circles
-/*
-            for (int i = 0; i < questContour.size(); i++) {
-
-                Imgproc.drawContours(threshMat, questContour, -1, Scalar.all(255), -1);
-                Mat maskImage = new Mat(threshMat.size(), CV_8UC1, Scalar.all(0));
-                Core.bitwise_and(threshMat, threshMat, maskImage);
-
-                //threshMat.copyTo(threshMat, maskImage);
-                int total = Core.countNonZero(maskImage);
-                if (total > 0) {
-                    Log.d(TAG, "loadImage: filled " + i);
-                }
-
-                *//*Core.bitwise_and(threshMat, threshMat, mask2);
-                int total = Core.countNonZero(mask2);
-                if (total > 0) {
-                    Log.d(TAG, "loadImage: filled " + i);
-                }*//*
-
-            }*/
-
-        /*
-
-            maskImage.setTo(Scalar.all(155));*/
+            //find question count
+            getQuestionCount(threshMat);
 
             showImage(threshMat);
 
@@ -157,6 +115,47 @@ public class OMRActivity extends AppCompatActivity {
         } catch (Exception ex) {
             Log.d(TAG, "loadImage: " + ex);
         }
+    }
+
+
+    //find & draw contour
+    private Mat getContour(Mat imgMat) {
+
+        List<MatOfPoint> contours = new ArrayList<>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(imgMat, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, new Point(0, 0));
+
+        Mat drawing = Mat.zeros(imgMat.size(), CV_8UC3);
+        for (int i = 0; i < contours.size(); i++) {
+            Imgproc.drawContours(drawing, contours, i, new Scalar(255, 0, 0), 2, 8, hierarchy, 0, new Point());
+        }
+
+        return drawing;
+    }
+
+    private void getQuestionCount(Mat imgMat) {
+
+        List<MatOfPoint> docMapContour = new ArrayList<>();
+        List<MatOfPoint> questContour = new ArrayList<>();
+
+        //region
+
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(imgMat, docMapContour, hierarchy,
+                Imgproc.RETR_EXTERNAL, CHAIN_APPROX_SIMPLE, new Point(0, 0));
+
+        if (docMapContour.size() > 0) {
+            for (MatOfPoint matOfPoint : docMapContour) {
+                Rect rect = Imgproc.boundingRect(matOfPoint);
+                double aspectRatio = (double) rect.width / rect.height;
+                if (rect.width > 20 && rect.height > 20 && aspectRatio >= 0.9 && aspectRatio <= 1.1) {
+                    questContour.add(matOfPoint);
+                }
+            }
+        }
+        //Log.d(TAG, "Total: " + questContour.size()); // Find total # of circles
+        txtQuestions.setText("Total Questions " + questContour.size());
+
     }
 
     private void showImage(Mat matFinal) {
@@ -167,8 +166,7 @@ public class OMRActivity extends AppCompatActivity {
         imgDisplay.setImageBitmap(bitmapFinal);
 
     }
-    //  public native void CannyEdgeDetection(long matAddrGr, long matAddrRgba);
-
+    
 
 }
 
@@ -226,4 +224,60 @@ public class OMRActivity extends AppCompatActivity {
                 questionList.add(mapPoint);
                 //}
             }*/
+
+
+//Mat mask = Mat.zeros(result.rows(),result.cols(),result.type());
+   /* int counter = 0;
+
+            for(int i=0;i<questContour.size();i++){
+
+                /*Imgproc.drawContours(threshMat, questContour, -1, Scalar.all(255), -1);
+                Mat maskImage = new Mat(threshMat.size(), CV_8UC1, Scalar.all(0));
+                Core.bitwise_and(threshMat, threshMat, maskImage);
+
+                //threshMat.copyTo(threshMat, maskImage);
+                int total = Core.countNonZero(maskImage);
+                if (total > 0) {
+                    Log.d(TAG, "loadImage: filled " + i);
+                }
+
+                Core.bitwise_and(threshMat, threshMat, mask2);
+                int total = Core.countNonZero(mask2);
+                if (total > 0) {
+                    Log.d(TAG, "loadImage: filled " + i);
+                }
+
+        Mat mask=Mat.zeros(questContour.get(i).rows(),questContour.get(i).cols(),CV_8UC1);
+        Imgproc.drawContours(mask,questContour,-1,new Scalar(255,0,0));
+
+             Core.bitwise_and(threshMat, threshMat, mask);
+
+                if (Core.countNonZero(mask) > 0) {
+                    Log.d(TAG, "loadImage: " + counter++);
+                }
+
+
+        }
+
+        /*    for (int i = 0; i < questContour.size(); i++) {
+
+                Imgproc.drawContours(threshMat, questContour, -1, Scalar.all(255), -1);
+                Mat maskImage = new Mat(threshMat.size(), CV_8UC1, Scalar.all(0));
+                Core.bitwise_and(threshMat, threshMat, maskImage);
+
+                //threshMat.copyTo(threshMat, maskImage);
+                int total = Core.countNonZero(maskImage);
+                if (total > 0) {
+                    Log.d(TAG, "loadImage: filled " + i);
+                }
+
+                Core.bitwise_and(threshMat, threshMat, mask2);
+                int total = Core.countNonZero(mask2);
+                if (total > 0) {
+                    Log.d(TAG, "loadImage: filled " + i);
+                }
+
+            }
+*/
+
 //endregion
