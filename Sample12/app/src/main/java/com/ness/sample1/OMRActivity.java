@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
 
+import static org.opencv.core.CvType.CV_32SC1;
 import static org.opencv.core.CvType.CV_8UC1;
 import static org.opencv.core.CvType.CV_8UC3;
 import static org.opencv.imgproc.Imgproc.CHAIN_APPROX_SIMPLE;
@@ -39,6 +40,7 @@ public class OMRActivity extends AppCompatActivity {
     private ImageView imgDisplay;
     public static final String TAG = "OMR";
     private TextView txtQuestions;
+    List<MatOfPoint> questContour = new ArrayList<>();
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -86,7 +88,7 @@ public class OMRActivity extends AppCompatActivity {
 
             //Load native opencv library
             AssetManager assetManager = getAssets();
-            InputStream inputFileStream = assetManager.open("scan_bubble_4.jpg");
+            InputStream inputFileStream = assetManager.open("scan_bubble_1.jpg");
             Bitmap bitmap = BitmapFactory.decodeStream(inputFileStream);
 
             //bitmap to MAT
@@ -109,6 +111,9 @@ public class OMRActivity extends AppCompatActivity {
             //find question count
             getQuestionCount(threshMat);
 
+            //draw contour on canny image
+            //Mat contourMat = getContour(threshMat);
+
             showImage(threshMat);
 
 
@@ -121,6 +126,7 @@ public class OMRActivity extends AppCompatActivity {
     //find & draw contour
     private Mat getContour(Mat imgMat) {
 
+        // passed the canny image
         List<MatOfPoint> contours = new ArrayList<>();
         Mat hierarchy = new Mat();
         Imgproc.findContours(imgMat, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, new Point(0, 0));
@@ -136,7 +142,6 @@ public class OMRActivity extends AppCompatActivity {
     private void getQuestionCount(Mat imgMat) {
 
         List<MatOfPoint> docMapContour = new ArrayList<>();
-        List<MatOfPoint> questContour = new ArrayList<>();
 
         //region
 
@@ -150,13 +155,36 @@ public class OMRActivity extends AppCompatActivity {
                 double aspectRatio = (double) rect.width / rect.height;
                 if (rect.width > 20 && rect.height > 20 && aspectRatio >= 0.9 && aspectRatio <= 1.1) {
                     questContour.add(matOfPoint);
+
+                    //find filled circle
+                    findFilledCircle(matOfPoint);
                 }
             }
         }
-        //Log.d(TAG, "Total: " + questContour.size()); // Find total # of circles
         txtQuestions.setText("Total Questions " + questContour.size());
 
     }
+
+    private void findFilledCircle(Mat imageMat) {
+
+
+        int totalPixel = imageMat.width() * imageMat.height();
+        Log.d(TAG, "Total Pixel: " + totalPixel);
+
+
+        //draw contour
+
+
+      /*  Mat mat1 = imageMat;
+        Mat mat2 = new Mat(mat1.size(), CV_8UC1, Scalar.all(0));
+        Imgproc.ellipse(mat2, new Point(0, 0), mat2.size(), 0, 0, 360, Scalar.all(255), -1, 8, 0);
+
+        Mat result = new Mat();
+        Core.bitwise_and(mat1, mat2, result);
+        Log.d(TAG, "result: " + result.width() * result.height());*/
+
+    }
+
 
     private void showImage(Mat matFinal) {
 
@@ -166,7 +194,7 @@ public class OMRActivity extends AppCompatActivity {
         imgDisplay.setImageBitmap(bitmapFinal);
 
     }
-    
+
 
 }
 
