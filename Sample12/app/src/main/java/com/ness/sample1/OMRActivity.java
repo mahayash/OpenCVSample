@@ -124,9 +124,53 @@ public class OMRActivity extends AppCompatActivity {
         }
     }
 
+    private void getQuestionCount(Mat imgMat) {
+
+        List<MatOfPoint> docMapContour = new ArrayList<>();
+
+        //region
+
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(imgMat, docMapContour, hierarchy,
+                Imgproc.RETR_EXTERNAL, CHAIN_APPROX_SIMPLE, new Point(0, 0));
+
+        if (docMapContour.size() > 0) {
+            int counter = 0;
+            for (MatOfPoint matOfPoint : docMapContour) {
+                Rect rect = Imgproc.boundingRect(matOfPoint);
+                double aspectRatio = (double) rect.width / rect.height;
+                if (rect.width > 20 && rect.height > 20 && aspectRatio >= 0.9 && aspectRatio <= 1.1) {
+                    questContour.add(matOfPoint);
+                    matOfPoint.create(matOfPoint.size(), CV_8UC1);
+                    //TODO: find the pixel inside the contour area only
+                    Imgproc.drawContours(matOfPoint, questContour, -1, new Scalar(255, 0, 0), -1); // not working
+                    getPixelCount(matOfPoint);
+                }
+                counter++;
+            }
+        }
+        txtQuestions.setText("Total Questions " + questContour.size());
+
+    }
 
     //find & draw contour
     private Mat getContour(Mat imgMat) {
+
+        // passed the canny image
+        List<MatOfPoint> contours = new ArrayList<>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(imgMat, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, new Point(0, 0));
+
+        Mat drawing = Mat.zeros(imgMat.size(), CV_8UC3);
+        for (int i = 0; i < contours.size(); i++) {
+            Imgproc.drawContours(drawing, contours, i, new Scalar(255, 0, 0), 2, 8, hierarchy, 0, new Point());
+        }
+
+        return drawing;
+    }
+
+    //find & draw contour
+    private Mat getMaskedContour(Mat imgMat) {
 
         // passed the canny image
         List<MatOfPoint> contours = new ArrayList<>();
@@ -161,32 +205,6 @@ public class OMRActivity extends AppCompatActivity {
         Log.d(TAG, "Total pixel count: " + total);
 
         showImage(result);
-
-    }
-
-
-    private void getQuestionCount(Mat imgMat) {
-
-        List<MatOfPoint> docMapContour = new ArrayList<>();
-
-        //region
-
-        Mat hierarchy = new Mat();
-        Imgproc.findContours(imgMat, docMapContour, hierarchy,
-                Imgproc.RETR_EXTERNAL, CHAIN_APPROX_SIMPLE, new Point(0, 0));
-
-        if (docMapContour.size() > 0) {
-            for (MatOfPoint matOfPoint : docMapContour) {
-                Rect rect = Imgproc.boundingRect(matOfPoint);
-                double aspectRatio = (double) rect.width / rect.height;
-                if (rect.width > 20 && rect.height > 20 && aspectRatio >= 0.9 && aspectRatio <= 1.1) {
-                    questContour.add(matOfPoint);
-                    matOfPoint.create(matOfPoint.size(), CV_8UC1);
-                    getPixelCount(matOfPoint);
-                }
-            }
-        }
-        txtQuestions.setText("Total Questions " + questContour.size());
 
     }
 
