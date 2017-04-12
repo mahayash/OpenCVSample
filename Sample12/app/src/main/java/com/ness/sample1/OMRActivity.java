@@ -33,6 +33,7 @@ import static org.opencv.core.CvType.CV_8UC1;
 import static org.opencv.core.CvType.CV_8UC3;
 import static org.opencv.imgproc.Imgproc.CHAIN_APPROX_SIMPLE;
 import static org.opencv.imgproc.Imgproc.RETR_TREE;
+import static org.opencv.imgproc.Imgproc.THRESH_OTSU;
 
 
 public class OMRActivity extends AppCompatActivity {
@@ -88,12 +89,14 @@ public class OMRActivity extends AppCompatActivity {
 
             //Load native opencv library
             AssetManager assetManager = getAssets();
-            InputStream inputFileStream = assetManager.open("scan_bubble_1.jpg");
+            InputStream inputFileStream = assetManager.open("scan_bubble_1_filled.jpg");
             Bitmap bitmap = BitmapFactory.decodeStream(inputFileStream);
 
             //bitmap to MAT
             Mat imgMat = new Mat();
             Utils.bitmapToMat(bitmap, imgMat);
+
+            //maskedImage(imgMat);
 
             //Gray Color
             Imgproc.cvtColor(imgMat, imgMat, Imgproc.COLOR_BGR2GRAY);
@@ -106,16 +109,15 @@ public class OMRActivity extends AppCompatActivity {
             Imgproc.threshold(imgMat, threshMat, 0, 255, Imgproc.THRESH_BINARY_INV | Imgproc.THRESH_OTSU);
 
             //Canny
-            Imgproc.Canny(threshMat, imgMat, 75, 200);
+            //Imgproc.Canny(threshMat, imgMat, 75, 200);
 
-            //find question count
+            //find question count of Threshed Image
             getQuestionCount(threshMat);
 
             //draw contour on canny image
-            //Mat contourMat = getContour(threshMat);
+            //Mat contourMat = getContour(threshMat); // don't remove
 
             showImage(threshMat);
-
 
         } catch (Exception ex) {
             Log.d(TAG, "loadImage: " + ex);
@@ -139,6 +141,30 @@ public class OMRActivity extends AppCompatActivity {
         return drawing;
     }
 
+    private void maskedImage(Mat ogImage) {
+
+        //Gray
+        Mat grayImg = new Mat();
+        Imgproc.cvtColor(ogImage, grayImg, Imgproc.COLOR_BGR2GRAY);
+
+        //thresh
+        Mat mask = new Mat();
+        Imgproc.threshold(grayImg, mask, 10, 255, Imgproc.THRESH_BINARY_INV | THRESH_OTSU); // Imgproc.THRESH_BINARY_INV | THRESH_OTSU works
+
+        Mat mask_inv = new Mat(); // give the inverse of mask
+        Core.bitwise_not(mask, mask_inv);
+
+        Mat result = new Mat();
+        Core.bitwise_and(mask_inv, mask_inv, result, mask);
+
+        int total = Core.countNonZero(result);
+        Log.d(TAG, "Total pixel count: " + total);
+
+        showImage(result);
+
+    }
+
+
     private void getQuestionCount(Mat imgMat) {
 
         List<MatOfPoint> docMapContour = new ArrayList<>();
@@ -155,9 +181,8 @@ public class OMRActivity extends AppCompatActivity {
                 double aspectRatio = (double) rect.width / rect.height;
                 if (rect.width > 20 && rect.height > 20 && aspectRatio >= 0.9 && aspectRatio <= 1.1) {
                     questContour.add(matOfPoint);
-
-                    //find filled circle
-                    findFilledCircle(matOfPoint);
+                    matOfPoint.create(matOfPoint.size(), CV_8UC1);
+                    getPixelCount(matOfPoint);
                 }
             }
         }
@@ -185,6 +210,19 @@ public class OMRActivity extends AppCompatActivity {
 
     }
 
+    private void getPixelCount(Mat circleImage) {
+
+        Mat mask_inv = new Mat();
+        Core.bitwise_not(circleImage, mask_inv);
+
+        Mat result = new Mat();
+        Core.bitwise_and(circleImage, circleImage, result, mask_inv);
+
+        int totalPix = Core.countNonZero(result);
+        Log.d(TAG, "totalPix: " + totalPix);
+
+        showImage(result);
+    }
 
     private void showImage(Mat matFinal) {
 
@@ -194,8 +232,6 @@ public class OMRActivity extends AppCompatActivity {
         imgDisplay.setImageBitmap(bitmapFinal);
 
     }
-
-
 }
 
 
