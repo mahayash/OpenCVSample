@@ -26,9 +26,7 @@ import org.opencv.imgproc.Imgproc;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
-import static org.opencv.core.CvType.CV_32SC1;
 import static org.opencv.core.CvType.CV_8UC1;
 import static org.opencv.core.CvType.CV_8UC3;
 import static org.opencv.imgproc.Imgproc.CHAIN_APPROX_SIMPLE;
@@ -89,14 +87,15 @@ public class OMRActivity extends AppCompatActivity {
 
             //Load native opencv library
             AssetManager assetManager = getAssets();
-            InputStream inputFileStream = assetManager.open("scan_bubble_1_filled.jpg");
+            InputStream inputFileStream = assetManager.open("scan_bubble_1.jpg");
             Bitmap bitmap = BitmapFactory.decodeStream(inputFileStream);
+
+            Mat ogImage = new Mat();
+            Utils.bitmapToMat(bitmap, ogImage);
 
             //bitmap to MAT
             Mat imgMat = new Mat();
             Utils.bitmapToMat(bitmap, imgMat);
-
-            //maskedImage(imgMat);
 
             //Gray Color
             Imgproc.cvtColor(imgMat, imgMat, Imgproc.COLOR_BGR2GRAY);
@@ -117,21 +116,23 @@ public class OMRActivity extends AppCompatActivity {
             //draw contour on canny image
             //Mat contourMat = getContour(threshMat); // don't remove
 
-            showImage(threshMat);
+            //findCountPixel(threshMat);
+
+            showImage(ogImage);
 
         } catch (Exception ex) {
             Log.d(TAG, "loadImage: " + ex);
         }
     }
 
-    private void getQuestionCount(Mat imgMat) {
+    private void getQuestionCount(Mat threshMat) {
 
         List<MatOfPoint> docMapContour = new ArrayList<>();
 
         //region
 
         Mat hierarchy = new Mat();
-        Imgproc.findContours(imgMat, docMapContour, hierarchy,
+        Imgproc.findContours(threshMat, docMapContour, hierarchy,
                 Imgproc.RETR_EXTERNAL, CHAIN_APPROX_SIMPLE, new Point(0, 0));
 
         if (docMapContour.size() > 0) {
@@ -142,14 +143,36 @@ public class OMRActivity extends AppCompatActivity {
                 if (rect.width > 20 && rect.height > 20 && aspectRatio >= 0.9 && aspectRatio <= 1.1) {
                     questContour.add(matOfPoint);
                     matOfPoint.create(matOfPoint.size(), CV_8UC1);
-                    //TODO: find the pixel inside the contour area only
-                    Imgproc.drawContours(matOfPoint, questContour, -1, new Scalar(255, 0, 0), -1); // not working
-                    getPixelCount(matOfPoint);
+
+                    findCountPixel(matOfPoint);
                 }
                 counter++;
             }
         }
         txtQuestions.setText("Total Questions " + questContour.size());
+
+    }
+
+    private void getPixelCount(Mat circleImage) {
+
+        Mat mask_inv = new Mat();
+        Core.bitwise_not(circleImage, mask_inv);
+
+        Mat result = new Mat();
+        Core.bitwise_and(circleImage, circleImage, result, mask_inv);
+
+        int totalPix = Core.countNonZero(result);
+        Log.d(TAG, "totalPix: " + totalPix);
+
+        showImage(result);
+    }
+
+    private void showImage(Mat matFinal) {
+
+        Bitmap bitmapFinal = Bitmap.createBitmap(matFinal.cols(), matFinal.rows(), Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(matFinal, bitmapFinal);
+
+        imgDisplay.setImageBitmap(bitmapFinal);
 
     }
 
@@ -187,6 +210,7 @@ public class OMRActivity extends AppCompatActivity {
 
     private void maskedImage(Mat ogImage) {
 
+
         //Gray
         Mat grayImg = new Mat();
         Imgproc.cvtColor(ogImage, grayImg, Imgproc.COLOR_BGR2GRAY);
@@ -199,7 +223,7 @@ public class OMRActivity extends AppCompatActivity {
         Core.bitwise_not(mask, mask_inv);
 
         Mat result = new Mat();
-        Core.bitwise_and(mask_inv, mask_inv, result, mask);
+        Core.bitwise_and(ogImage, ogImage, result, mask);
 
         int total = Core.countNonZero(result);
         Log.d(TAG, "Total pixel count: " + total);
@@ -207,6 +231,7 @@ public class OMRActivity extends AppCompatActivity {
         showImage(result);
 
     }
+
 
     private void findFilledCircle(Mat imageMat) {
 
@@ -228,28 +253,65 @@ public class OMRActivity extends AppCompatActivity {
 
     }
 
-    private void getPixelCount(Mat circleImage) {
 
-        Mat mask_inv = new Mat();
-        Core.bitwise_not(circleImage, mask_inv);
+    private void findCountPixel(Mat threshImage) {
 
-        Mat result = new Mat();
-        Core.bitwise_and(circleImage, circleImage, result, mask_inv);
+        /*Mat gray = new Mat();
+        Imgproc.cvtColor(ogImage, gray, Imgproc.COLOR_BGR2GRAY);*/
 
-        int totalPix = Core.countNonZero(result);
-        Log.d(TAG, "totalPix: " + totalPix);
+        Mat canny = new Mat();
+        Imgproc.Canny(threshImage, canny, 100, 200);
 
-        showImage(result);
+        //find contour
+        List<MatOfPoint> contours = new ArrayList<>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(canny, contours, hierarchy, 0, 1);
+
+        Mat mask = Mat.zeros(threshImage.rows(), threshImage.cols(), CV_8UC1);
+        Imgproc.drawContours(mask, contours, -1, Scalar.all(255), -1);
+
+        Core.bitwise_and(threshImage, threshImage, mask);
+
+        int totalPixel = Core.countNonZero(mask);
+        Log.d(TAG, "findCountPixel: " + totalPixel);
+
+        /*//create New image
+        Mat crop = new Mat(gray.rows(), gray.cols(), CV_8UC3);
+        crop.setTo(new Scalar(0, 255, 0));
+
+        ogImage.copyTo(crop, mask);*/
+
     }
 
-    private void showImage(Mat matFinal) {
 
-        Bitmap bitmapFinal = Bitmap.createBitmap(matFinal.cols(), matFinal.rows(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(matFinal, bitmapFinal);
+    private void findCountPixel2(Mat ogImage) {
 
-        imgDisplay.setImageBitmap(bitmapFinal);
+        Mat gray = new Mat();
+        Imgproc.cvtColor(ogImage, gray, Imgproc.COLOR_BGR2GRAY);
 
+        Mat canny = new Mat();
+        Imgproc.Canny(gray, canny, 100, 200);
+
+        //find contour
+        List<MatOfPoint> contours = new ArrayList<>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(canny, contours, hierarchy, 0, 1);
+
+        Mat mask = Mat.zeros(gray.rows(), gray.cols(), CV_8UC1);
+        Imgproc.drawContours(mask, contours, -1, Scalar.all(255), 1);
+
+        int totalPixel = Core.countNonZero(mask);
+        Log.d(TAG, "findCountPixel: " + totalPixel);
+
+        /*//create New image
+        Mat crop = new Mat(gray.rows(), gray.cols(), CV_8UC3);
+        crop.setTo(new Scalar(0, 255, 0));
+
+        ogImage.copyTo(crop, mask);*/
+
+        //showImage(mask);
     }
+
 }
 
 
