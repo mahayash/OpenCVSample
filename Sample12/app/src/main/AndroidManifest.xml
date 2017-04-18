@@ -31,6 +31,11 @@
             android:name=".OMRActivity"
             android:screenOrientation="portrait"
             android:theme="@style/AppThemeNoActionBar" />
+
+        <activity
+            android:name=".FilledBubbleActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/AppThemeNoActionBar" />
     </application>
 
 </manifest>

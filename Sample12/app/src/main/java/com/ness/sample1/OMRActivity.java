@@ -118,7 +118,7 @@ public class OMRActivity extends AppCompatActivity {
 
             //findCountPixel(threshMat);
 
-            showImage(ogImage);
+            //showImage(ogImage);
 
         } catch (Exception ex) {
             Log.d(TAG, "loadImage: " + ex);
@@ -138,17 +138,20 @@ public class OMRActivity extends AppCompatActivity {
         if (docMapContour.size() > 0) {
             int counter = 0;
             for (MatOfPoint matOfPoint : docMapContour) {
+
                 Rect rect = Imgproc.boundingRect(matOfPoint);
                 double aspectRatio = (double) rect.width / rect.height;
+
                 if (rect.width > 20 && rect.height > 20 && aspectRatio >= 0.9 && aspectRatio <= 1.1) {
                     questContour.add(matOfPoint);
                     matOfPoint.create(matOfPoint.size(), CV_8UC1);
-
                     findCountPixel(matOfPoint);
                 }
                 counter++;
             }
         }
+
+        showImage(threshMat);
         txtQuestions.setText("Total Questions " + questContour.size());
 
     }
@@ -164,7 +167,6 @@ public class OMRActivity extends AppCompatActivity {
         int totalPix = Core.countNonZero(result);
         Log.d(TAG, "totalPix: " + totalPix);
 
-        showImage(result);
     }
 
     private void showImage(Mat matFinal) {

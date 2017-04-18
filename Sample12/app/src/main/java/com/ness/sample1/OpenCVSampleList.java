@@ -34,21 +34,26 @@ public class OpenCVSampleList extends AppCompatActivity implements AdapterView.O
 
     private String[] getIndex() {
 
-        return new String[]{"Gray Image", "Detect Circle", "Detect Canny", "Detect OMR"};
+        return new String[]{"Gray Image", "Detect Circle", "Detect Canny", "Detect OMR", "Filled or NonFilled"};
     }
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
-        if (position == 3) {
+        switch (position) {
 
-            Intent omrIntent = new Intent(this, OMRActivity.class);
-            startActivity(omrIntent);
-
-        } else {
-            Intent activityIntent = new Intent(this, MainActivity.class);
-            activityIntent.putExtra(Constants.POSITION, position);
-            startActivity(activityIntent);
+            case 3:
+                Intent omrIntent = new Intent(this, OMRActivity.class);
+                startActivity(omrIntent);
+                break;
+            case 4:
+                Intent filledIntent = new Intent(this, FilledBubbleActivity.class);
+                startActivity(filledIntent);
+                break;
+            default:
+                Intent activityIntent = new Intent(this, MainActivity.class);
+                activityIntent.putExtra(Constants.POSITION, position);
+                startActivity(activityIntent);
         }
     }
 }
